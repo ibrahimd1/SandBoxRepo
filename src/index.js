@@ -1,80 +1,95 @@
 import React from "react";
 import ReactDOM from "react-dom";
-
 import "./base.css";
 import "./index.css";
 
-function Footer(props) {
+function Footer({ nItemsLeft, setCurrentFilter, currentFilter }) {
+  const FILTER_TYPES = ["ALL", "ACTIVE", "COMPLETED"];
+
   return (
     <footer id="footer" style={{ display: "block" }}>
       <span id="todo-count">
-        <strong>{props.nItemsLeft}</strong> items left
+        <strong>{nItemsLeft}</strong> items left
       </span>
       <ul id="filters">
-        <li>
-          <a
-            className={props.currentFilter === "ALL" ? "selected" : ""}
-            href="#/"
-          >
-            All
-          </a>
-        </li>
-        <li>
-          <a
-            className={props.currentFilter === "ACTIVE" ? "selected" : ""}
-            href="#/active"
-          >
-            Active
-          </a>
-        </li>
-        <li>
-          <a
-            className={props.currentFilter === "COMPLETED" ? "selected" : ""}
-            href="#/completed"
-          >
-            Completed
-          </a>
-        </li>
+        {FILTER_TYPES.map(filterType => (
+          <Liste
+            currentFilter={currentFilter}
+            filterType={filterType}
+            setCurrentFilter={setCurrentFilter}
+          />
+        ))}
       </ul>
     </footer>
   );
 }
 
-function ToDoListItem(props) {
+function Liste({ currentFilter, filterType, setCurrentFilter }) {
   return (
     <li>
-      <div className="view">
-        <input
-          // className="toggle"
-          type="checkbox"
-          checked={props.items.completed}
-        />
-        <label>{props.items.description}</label>
-        <button className="destroy" />
-      </div>
-      <input className="edit" defaultValue={props.items.description} />
+      <a
+        className={currentFilter === filterType ? "selected" : ""}
+        href="#/"
+        onClick={() => setCurrentFilter(filterType)}
+      >
+        {filterType}
+      </a>
     </li>
   );
 }
 
-function TodoList(props) {
-  const todosView = [];
-  for (let i = 0; i < props.items.length; i++) {
-    todosView.push(<ToDoListItem items={props.items[i]} />);
-  }
-
-  return <ul id="todo-list">{todosView}</ul>;
+function ToDoListItem({ item, toggleToDo, destroyToDo }) {
+  return (
+    <li>
+      <div className="view">
+        <input
+          //className="toggle"
+          type="checkbox"
+          checked={item.completed}
+          onChange={() => toggleToDo(item.id)}
+        />
+        <label>{item.description}</label>
+        <button className="destroy" onClick={() => destroyToDo(item.id)} />
+      </div>
+      <input className="edit" defaultValue={item.description} />
+    </li>
+  );
 }
-
-function Header() {
+function TodoList({ items, toggleToDo, destroyToDo }) {
+  return (
+    <ul id="todo-list">
+      {items.map(item => (
+        <ToDoListItem
+          key={item.id}
+          item={item}
+          toggleToDo={toggleToDo}
+          destroyToDo={destroyToDo}
+        />
+      ))}
+    </ul>
+  );
+}
+function Header({ value, onChange, onSubmit }) {
   return (
     <header id="header">
       <h1>todos</h1>
-      <input id="new-todo" placeholder="What needs to be done?" autofocus />
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          onSubmit();
+        }}
+      >
+        <input
+          id="new-todo"
+          placeholder="What needs to be done?"
+          autofocus
+          value={value}
+          onChange={evt => onChange(evt.target.value)}
+        />
+      </form>
     </header>
   );
 }
-
 class ToDoApp extends React.Component {
   state = {
     todos: [
@@ -82,26 +97,53 @@ class ToDoApp extends React.Component {
       { id: 2, description: "Buy potatos", completed: true },
       { id: 3, description: "Buy deneme", completed: true }
     ],
+    toDoCounter: 3,
     currentFilter: "ALL",
     tempToDo: ""
   };
-
   toggleToDo(id) {
     const todos = this.state.todos;
-    todos.forEach(todo => {
-      if (todo.id === id) todo.completed = !todo.completed;
+    const todosV2 = todos.map(todo => {
+      if (todo.id === id) return { ...todo, completed: !todo.completed };
+      else return todo;
     });
-
-    this.setState({ todos: todos });
+    this.setState({ todos: todosV2 });
   }
-
+  destroyToDo(id) {
+    const todos = this.state.todos;
+    const todosV2 = todos.filter(todo => todo.id !== id);
+    this.setState({ todos: todosV2 });
+  }
   get nItemsLeft() {
     return this.state.todos.filter(item => !item.completed).length;
   }
+  setTempToDo(tempToDo) {
+    this.setState({ tempToDo });
+  }
+  insertToDo() {
+    const { toDoCounter, tempToDo, todos } = this.state;
 
-  getVisibleTodDos() {
+    if (todos.some(x => x.description === tempToDo) || tempToDo.length === 0) {
+      return;
+    }
+
+    const newToDo = {
+      id: toDoCounter + 1,
+      description: tempToDo,
+      completed: false
+    };
+    const todos2 = [newToDo, ...todos];
+    this.setState({
+      todos: todos2,
+      toDoCounter: toDoCounter + 1,
+      tempToDo: ""
+    });
+  }
+  setCurrentFilter(currentFilter) {
+    this.setState({ currentFilter });
+  }
+  getVisibleToDos() {
     let visibleToDos = [];
-
     if (this.state.currentFilter === "ALL") {
       visibleToDos = this.state.todos;
     } else if (this.state.currentFilter === "ACTIVE") {
@@ -109,67 +151,47 @@ class ToDoApp extends React.Component {
     } else {
       visibleToDos = this.state.todos.filter(todo => todo.completed);
     }
-
     return visibleToDos;
   }
-
+  getDebug(obj) {
+    return <pre>{JSON.stringify(obj, null, 4)}</pre>;
+  }
   render() {
     return (
       <section id="todoapp">
-        <Header />
+        {false && this.getDebug(this.state)}
+        <Header
+          value={this.state.tempToDo}
+          onChange={this.setTempToDo.bind(this)}
+          onSubmit={this.insertToDo.bind(this)}
+        />
         <section id="main" style={{ display: "block" }}>
           <input id="toggle-all" type="checkbox" />
           <label htmlFor="toggle-all">Mark all as complete</label>
-          <TodoList items={this.getVisibleTodDos()} />
+          <TodoList
+            items={this.getVisibleToDos()}
+            toggleToDo={this.toggleToDo.bind(this)}
+            destroyToDo={this.destroyToDo.bind(this)}
+          />
         </section>
-        <button onClick={() => this.toggleToDo(2)}>Toggle1</button>
         <Footer
           nItemsLeft={this.nItemsLeft}
           currentFilter={this.state.currentFilter}
+          setCurrentFilter={this.setCurrentFilter.bind(this)}
         />
       </section>
     );
   }
 }
-
-class Sayac extends React.Component {
-  state = { sayac: 0 };
-
-  artir = () => {
-    //alert("Tıklandı.Sayacın değeri:" + this.state.sayac);
-    this.setState({ sayac: this.state.sayac + 1 });
-  };
-
-  azalt = () => {
-    this.setState({ sayac: this.state.sayac - 1 });
-  };
-
-  render() {
-    return (
-      <div>
-        Sayacın Değeri:{this.state.sayac}
-        {this.state.sayac === 5 ? <p>Lütfen 5 ten fazla girmeyiniz</p> : null}
-        <button onClick={this.artir} disabled={this.state.sayac === 5}>
-          Arttır
-        </button>
-        <button onClick={this.azalt} disabled={this.state.sayac === 0}>
-          Azalt
-        </button>
-      </div>
-    );
-  }
-}
-
 function App() {
   return (
     <div className="App">
       {/*<h1>Hello merhaba nasılsın CodeSandbox</h1>
-      <h2>Start editing to see some magic happen!</h2> <Sayac />
-      */}
+<h2>Start editing to see some magic happen!</h2> <Sayac />
+*/}
       <ToDoApp />
     </div>
   );
 }
-
 const rootElement = document.getElementById("root");
 ReactDOM.render(<App />, rootElement);
