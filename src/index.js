@@ -1,195 +1,77 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import "./base.css";
-import "./index.css";
+import { createStore } from "redux";
+import { Provider, connect } from "react-redux";
 
-function Footer({ nItemsLeft, setCurrentFilter, currentFilter }) {
-  const FILTER_TYPES = ["ALL", "ACTIVE", "COMPLETED"];
-
-  return (
-    <footer id="footer" style={{ display: "block" }}>
-      <span id="todo-count">
-        <strong>{nItemsLeft}</strong> items left
-      </span>
-      <ul id="filters">
-        {FILTER_TYPES.map(filterType => (
-          <Liste
-            currentFilter={currentFilter}
-            filterType={filterType}
-            setCurrentFilter={setCurrentFilter}
-          />
-        ))}
-      </ul>
-    </footer>
-  );
+function SayacReducer(stateBaslangic = { counter: 0 }, action) {
+  switch (action.type) {
+    case "INCREMENT":
+      return { counter: stateBaslangic.counter + 1 };
+    case "DECREMENT":
+      return { counter: stateBaslangic.counter - 1 };
+    case "RESET":
+      return { counter: 0 };
+    default:
+      return stateBaslangic;
+  }
 }
 
-function Liste({ currentFilter, filterType, setCurrentFilter }) {
-  return (
-    <li>
-      <a
-        className={currentFilter === filterType ? "selected" : ""}
-        href="#/"
-        onClick={() => setCurrentFilter(filterType)}
-      >
-        {filterType}
-      </a>
-    </li>
-  );
-}
+const store = createStore(SayacReducer);
 
-function ToDoListItem({ item, toggleToDo, destroyToDo }) {
-  return (
-    <li>
-      <div className="view">
-        <input
-          //className="toggle"
-          type="checkbox"
-          checked={item.completed}
-          onChange={() => toggleToDo(item.id)}
-        />
-        <label>{item.description}</label>
-        <button className="destroy" onClick={() => destroyToDo(item.id)} />
-      </div>
-      <input className="edit" defaultValue={item.description} />
-    </li>
-  );
-}
-function TodoList({ items, toggleToDo, destroyToDo }) {
-  return (
-    <ul id="todo-list">
-      {items.map(item => (
-        <ToDoListItem
-          key={item.id}
-          item={item}
-          toggleToDo={toggleToDo}
-          destroyToDo={destroyToDo}
-        />
-      ))}
-    </ul>
-  );
-}
-function Header({ value, onChange, onSubmit }) {
-  return (
-    <header id="header">
-      <h1>todos</h1>
-      <form
-        onSubmit={e => {
-          e.preventDefault();
-          onSubmit();
-        }}
-      >
-        <input
-          id="new-todo"
-          placeholder="What needs to be done?"
-          autofocus
-          value={value}
-          onChange={evt => onChange(evt.target.value)}
-        />
-      </form>
-    </header>
-  );
-}
-class ToDoApp extends React.Component {
-  state = {
-    todos: [
-      { id: 1, description: "Buy tomatos", completed: false },
-      { id: 2, description: "Buy potatos", completed: true },
-      { id: 3, description: "Buy deneme", completed: true }
-    ],
-    toDoCounter: 3,
-    currentFilter: "ALL",
-    tempToDo: ""
-  };
-  toggleToDo(id) {
-    const todos = this.state.todos;
-    const todosV2 = todos.map(todo => {
-      if (todo.id === id) return { ...todo, completed: !todo.completed };
-      else return todo;
+class Sayac extends React.Component {
+  constructor() {
+    super();
+    this.state = store.getState(); /////state demek zorundayız.
+
+    store.subscribe(() => {
+      this.setState(store.getState()); ////state değiştiğinde son halini stateimize setliyoruz
     });
-    this.setState({ todos: todosV2 });
-  }
-  destroyToDo(id) {
-    const todos = this.state.todos;
-    const todosV2 = todos.filter(todo => todo.id !== id);
-    this.setState({ todos: todosV2 });
-  }
-  get nItemsLeft() {
-    return this.state.todos.filter(item => !item.completed).length;
-  }
-  setTempToDo(tempToDo) {
-    this.setState({ tempToDo });
-  }
-  insertToDo() {
-    const { toDoCounter, tempToDo, todos } = this.state;
-
-    if (todos.some(x => x.description === tempToDo) || tempToDo.length === 0) {
-      return;
-    }
-
-    const newToDo = {
-      id: toDoCounter + 1,
-      description: tempToDo,
-      completed: false
-    };
-    const todos2 = [newToDo, ...todos];
-    this.setState({
-      todos: todos2,
-      toDoCounter: toDoCounter + 1,
-      tempToDo: ""
-    });
-  }
-  setCurrentFilter(currentFilter) {
-    this.setState({ currentFilter });
-  }
-  getVisibleToDos() {
-    let visibleToDos = [];
-    if (this.state.currentFilter === "ALL") {
-      visibleToDos = this.state.todos;
-    } else if (this.state.currentFilter === "ACTIVE") {
-      visibleToDos = this.state.todos.filter(todo => !todo.completed);
-    } else {
-      visibleToDos = this.state.todos.filter(todo => todo.completed);
-    }
-    return visibleToDos;
-  }
-  getDebug(obj) {
-    return <pre>{JSON.stringify(obj, null, 4)}</pre>;
   }
   render() {
     return (
-      <section id="todoapp">
-        {false && this.getDebug(this.state)}
-        <Header
-          value={this.state.tempToDo}
-          onChange={this.setTempToDo.bind(this)}
-          onSubmit={this.insertToDo.bind(this)}
-        />
-        <section id="main" style={{ display: "block" }}>
-          <input id="toggle-all" type="checkbox" />
-          <label htmlFor="toggle-all">Mark all as complete</label>
-          <TodoList
-            items={this.getVisibleToDos()}
-            toggleToDo={this.toggleToDo.bind(this)}
-            destroyToDo={this.destroyToDo.bind(this)}
-          />
-        </section>
-        <Footer
-          nItemsLeft={this.nItemsLeft}
-          currentFilter={this.state.currentFilter}
-          setCurrentFilter={this.setCurrentFilter.bind(this)}
-        />
-      </section>
+      <div>
+        Sayac Değeri : {this.state.counter}
+        <br />
+        <button onClick={() => store.dispatch({ type: "INCREMENT" })}>
+          ARTIR
+        </button>
+        <button onClick={() => store.dispatch({ type: "DECREMENT" })}>
+          AZALT
+        </button>
+        <button onClick={() => store.dispatch({ type: "RESET" })}>
+          RESETLE
+        </button>
+      </div>
     );
   }
 }
+
+function Sayac2({ counter, increment, decrement, reset }) {
+  return (
+    <div>
+      Sayac Değeri : {counter}
+      <button onClick={increment}>ARTIR</button>
+      <button onClick={decrement}>AZALT</button>
+      <button onClick={reset}>RESETLE</button>
+    </div>
+  );
+}
+
+const ConnectedSayac = connect(
+  state => ({ counter: state.counter }),
+  dispatch => ({
+    increment: () => dispatch({ type: "INCREMENT" }),
+    decrement: () => dispatch({ type: "DECREMENT" }),
+    reset: () => dispatch({ type: "RESET" })
+  })
+)(Sayac2);
+
 function App() {
   return (
     <div className="App">
-      {/*<h1>Hello merhaba nasılsın CodeSandbox</h1>
-<h2>Start editing to see some magic happen!</h2> <Sayac />
-*/}
-      <ToDoApp />
+      <Provider store={store}>
+        <ConnectedSayac />
+      </Provider>
     </div>
   );
 }
